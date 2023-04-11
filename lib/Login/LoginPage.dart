@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 
+import '../CameraScreen.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
@@ -16,13 +18,19 @@ class _LoginPageState extends State<LoginPage> {
     try {
       Response response = await post(
           Uri.parse('http://ptitsure.tk:9296/app/login'),
-          body: json.encoder({
+          body: json.encode({
             'username': 'pm3',
             'password': '123456'
           }));
 
       if (response.statusCode == 200) {
         print("successfull");
+        var data = jsonDecode(response.body.toString());
+        print(data['token']);
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CameraScreen()),
+        );
       } else {
         print(response.reasonPhrase);
       }
