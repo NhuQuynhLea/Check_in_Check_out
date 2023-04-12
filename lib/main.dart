@@ -1,8 +1,13 @@
+import 'package:check_in_check_out/CameraScreen.dart';
+import 'package:face_camera/face_camera.dart';
 import 'package:flutter/material.dart';
 
 import 'Login/LoginPage.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await FaceCamera.initialize();
   runApp(const MyApp());
 }
 
@@ -17,7 +22,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const LoginPage(),
+      home: const CameraScreen(),
     );
   }
 }

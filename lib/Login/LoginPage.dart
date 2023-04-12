@@ -29,7 +29,7 @@ class _LoginPageState extends State<LoginPage> {
         print(data['token']);
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const CameraScreen()),
+          MaterialPageRoute(builder:(context) =>  const CameraScreen()),
         );
       } else {
         print(response.reasonPhrase);
