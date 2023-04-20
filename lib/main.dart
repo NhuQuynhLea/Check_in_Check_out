@@ -1,5 +1,4 @@
 import 'package:camera/camera.dart';
-import 'package:check_in_check_out/face_detector_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,8 +12,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   cameras = await availableCameras();
-
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
