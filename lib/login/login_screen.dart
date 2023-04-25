@@ -67,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   if (loginSuccess == true) {
                     Navigator.of(context).push(MaterialPageRoute(
                       builder: ((context) =>
-                          FaceDetectorView(token: officesData.token)),
+                          FaceDetectorView(token: officesData.token,)),
                     ));
                   }
                 } catch (error) {

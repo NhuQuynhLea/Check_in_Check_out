@@ -24,12 +24,13 @@ class Offices with ChangeNotifier {
       final response =
           await http.post(Uri.parse('http://ptitsure.tk:9296/app/login'),
               body: json.encode({
-                'username': username,
-                'password': password,
+                'username': "pm3",
+                'password': "123456",
               }));
       final data = json.decode(response.body);
       _token = data['token'];
       if (response.statusCode == 200) {
+        print(_token);
         return true;
       } else {
         return false;

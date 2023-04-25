@@ -1,4 +1,5 @@
 import 'package:camera/camera.dart';
+import 'package:check_in_check_out/take_picture.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,10 +13,13 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   cameras = await availableCameras();
+  final firstCamera = cameras.first;
+  runApp( MyApp(cameraDescription: firstCamera,));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  final CameraDescription cameraDescription;
+  const MyApp({Key? key,required this.cameraDescription}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +28,10 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: ((context) => Offices())),
         ChangeNotifierProvider(create: (context) => Users()),
       ],
-      child: const MaterialApp(
+      child:   const MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: LoginScreen(),
+        home: LoginScreen()
+        //TakePictureScreen(camera: cameraDescription),
       ),
     );
   }

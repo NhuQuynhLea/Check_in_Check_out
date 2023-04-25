@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
@@ -6,17 +7,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
 
 import '../main.dart';
-import 'models/users.dart';
 
 enum ScreenMode { liveFeed, gallery }
 
 class CameraView extends StatefulWidget {
-  const CameraView(
+  CameraView(
       {Key? key,
-      required this.token,
       required this.title,
       required this.customPaint,
       this.text,
@@ -24,7 +22,7 @@ class CameraView extends StatefulWidget {
       this.onScreenModeChanged,
       this.initialDirection = CameraLensDirection.back})
       : super(key: key);
-  final String? token;
+
   final String title;
   final CustomPaint? customPaint;
   final String? text;
@@ -45,7 +43,7 @@ class _CameraViewState extends State<CameraView> {
   int _cameraIndex = -1;
   double zoomLevel = 0.0, minZoomLevel = 0.0, maxZoomLevel = 0.0;
   final bool _allowPicker = true;
-  final bool _changingCameraLens = false;
+  bool _changingCameraLens = false;
 
   @override
   void initState() {
@@ -90,13 +88,54 @@ class _CameraViewState extends State<CameraView> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: [
+          if (_allowPicker)
+            Padding(
+              padding: EdgeInsets.only(right: 20.0),
+              child: GestureDetector(
+                onTap: _switchScreenMode,
+                child: Icon(
+                  _mode == ScreenMode.liveFeed
+                      ? Icons.photo_library_outlined
+                      : (Platform.isIOS
+                          ? Icons.camera_alt_outlined
+                          : Icons.camera),
+                ),
+              ),
+            ),
+        ],
       ),
       body: _body(),
+      floatingActionButton: _floatingActionButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
+  Widget? _floatingActionButton() {
+    if (_mode == ScreenMode.gallery) return null;
+    if (cameras.length == 1) return null;
+    return SizedBox(
+        height: 70.0,
+        width: 70.0,
+        child: FloatingActionButton(
+          onPressed: _switchLiveCamera,
+          child: Icon(
+            Platform.isIOS
+                ? Icons.flip_camera_ios_outlined
+                : Icons.flip_camera_android_outlined,
+            size: 40,
+          ),
+        ));
+  }
+
   Widget _body() {
-    return _liveFeedBody();
+    Widget body;
+    if (_mode == ScreenMode.liveFeed) {
+      body = _liveFeedBody();
+    } else {
+      body = _galleryBody();
+    }
+    return body;
   }
 
   Widget _liveFeedBody() {
@@ -123,8 +162,8 @@ class _CameraViewState extends State<CameraView> {
             scale: scale,
             child: Center(
               child: _changingCameraLens
-                  ? const Center(
-                      child: Text('Changing camera lens'),
+                  ? Center(
+                      child: const Text('Changing camera lens'),
                     )
                   : CameraPreview(_controller!),
             ),
@@ -154,38 +193,79 @@ class _CameraViewState extends State<CameraView> {
     );
   }
 
-  // Future _getImage(ImageSource source) async {
-  //   setState(() {
-  //     _image = null;
-  //     _path = null;
-  //   });
-  //   final pickedFile = await _imagePicker?.pickImage(source: source);
-  //   if (pickedFile != null) {
-  //     _processPickedFile(pickedFile);
-  //   }
-  //   setState(() {});
-  // }
+  Widget _galleryBody() {
+    return ListView(shrinkWrap: true, children: [
+      _image != null
+          ? SizedBox(
+              height: 400,
+              width: 400,
+              child: Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  Image.file(_image!),
+                  if (widget.customPaint != null) widget.customPaint!,
+                ],
+              ),
+            )
+          : Icon(
+              Icons.image,
+              size: 200,
+            ),
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: ElevatedButton(
+          child: Text('From Gallery'),
+          onPressed: () => _getImage(ImageSource.gallery),
+        ),
+      ),
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: ElevatedButton(
+          child: Text('Take a picture'),
+          onPressed: () => _getImage(ImageSource.camera),
+        ),
+      ),
+      if (_image != null)
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+              '${_path == null ? '' : 'Image path: $_path'}\n\n${widget.text ?? ''}'),
+        ),
+    ]);
+  }
 
-  // void _switchScreenMode() {
-  //   _image = null;
-  //   if (_mode == ScreenMode.liveFeed) {
-  //     _mode = ScreenMode.gallery;
-  //     _stopLiveFeed();
-  //   } else {
-  //     _mode = ScreenMode.liveFeed;
-  //     _startLiveFeed();
-  //   }
-  //   if (widget.onScreenModeChanged != null) {
-  //     widget.onScreenModeChanged!(_mode);
-  //   }
-  //   setState(() {});
-  // }
+  Future _getImage(ImageSource source) async {
+    setState(() {
+      _image = null;
+      _path = null;
+    });
+    final pickedFile = await _imagePicker?.pickImage(source: source);
+    if (pickedFile != null) {
+      _processPickedFile(pickedFile);
+    }
+    setState(() {});
+  }
+
+  void _switchScreenMode() {
+    _image = null;
+    if (_mode == ScreenMode.liveFeed) {
+      _mode = ScreenMode.gallery;
+      _stopLiveFeed();
+    } else {
+      _mode = ScreenMode.liveFeed;
+      _startLiveFeed();
+    }
+    if (widget.onScreenModeChanged != null) {
+      widget.onScreenModeChanged!(_mode);
+    }
+    setState(() {});
+  }
 
   Future _startLiveFeed() async {
     final camera = cameras[_cameraIndex];
     _controller = CameraController(
       camera,
-      ResolutionPreset.high,
+      ResolutionPreset.medium,
       enableAudio: false,
     );
     _controller?.initialize().then((_) {
@@ -210,47 +290,36 @@ class _CameraViewState extends State<CameraView> {
     _controller = null;
   }
 
-  // Future _switchLiveCamera() async {
-  //   setState(() => _changingCameraLens = true);
-  //   _cameraIndex = (_cameraIndex + 1) % cameras.length;
+  Future _switchLiveCamera() async {
+    setState(() => _changingCameraLens = true);
+    _cameraIndex = (_cameraIndex + 1) % cameras.length;
 
-  //   await _stopLiveFeed();
-  //   await _startLiveFeed();
-  //   setState(() => _changingCameraLens = false);
-  // }
+    await _stopLiveFeed();
+    await _startLiveFeed();
+    setState(() => _changingCameraLens = false);
+  }
 
-  // Future _processPickedFile(XFile? pickedFile) async {
-  //   final path = pickedFile?.path;
-  //   if (path == null) {
-  //     return;
-  //   }
-  //   setState(() {
-  //     _image = File(path);
-  //   });
-  //   _path = path;
-  //   final inputImage = InputImage.fromFilePath(path);
-  //   widget.onImage(inputImage);
-  // }
-
-  Future<void> takePicture() async {
-    await _controller?.initialize();
-    final img = await _controller?.takePicture();
-    final imgInFile = File(img!.path);
-    List<int> imgInBytes = imgInFile.readAsBytesSync();
-    String img64 = base64Encode(imgInBytes);
-    Provider.of<Users>(context, listen: false).detectFace(img64, widget.token);
+  Future _processPickedFile(XFile? pickedFile) async {
+    final path = pickedFile?.path;
+    if (path == null) {
+      return;
+    }
+    setState(() {
+      _image = File(path);
+    });
+    _path = path;
+    final inputImage = InputImage.fromFilePath(path);
+    widget.onImage(inputImage);
   }
 
   Future _processCameraImage(CameraImage image) async {
-    if (Provider.of<Users>(context, listen: false).userFace.isNotEmpty) {
-      takePicture();
-      await Future.delayed(const Duration(seconds: 10));
-    }
     final WriteBuffer allBytes = WriteBuffer();
     for (final Plane plane in image.planes) {
       allBytes.putUint8List(plane.bytes);
     }
     final bytes = allBytes.done().buffer.asUint8List();
+
+    //
 
     final Size imageSize =
         Size(image.width.toDouble(), image.height.toDouble());
@@ -280,11 +349,15 @@ class _CameraViewState extends State<CameraView> {
       inputImageFormat: inputImageFormat,
       planeData: planeData,
     );
-
     final inputImage =
         InputImage.fromBytes(bytes: bytes, inputImageData: inputImageData);
+    //
+
+    // String base64string = await base64.encode(inputImage.bytes as List<int>); //convert bytes to base64 string
+    // print(base64string);
+
+    //   log("000000000");
 
     widget.onImage(inputImage);
-    
   }
 }

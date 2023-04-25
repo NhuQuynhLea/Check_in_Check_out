@@ -32,7 +32,7 @@ class Users with ChangeNotifier {
     _userFace = userFaceDetected;
   }
 
-  Future<bool> detectFace(String img64, String? token) async {
+  Future<bool> detectFace(InputImage img64, String? token) async {
     try {
       final response = await http.post(
           Uri.parse('http://ptitsure.tk:9296/app/checkFaceImage'),
